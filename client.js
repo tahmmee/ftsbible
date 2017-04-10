@@ -18,8 +18,13 @@ queryRef.on("child_added", function(snapshot){
     .on("value", function(snapshot){
 
       // send request string to indexer
-      socket.emit('query:event', snapshot.val(), function(responses){
+      var q_str = snapshot.val()
+      // console.log("Q.STR", q_str, q_str == null)
+
+      if (q_str == null || q_str.length<3){ return }
+      socket.emit('query:event', q_str, function(responses){
         if (responses == null) { // no response
+          snapshot.ref.parent.child("response").set([]) 
           return
         }
 
@@ -39,14 +44,16 @@ queryRef.on("child_added", function(snapshot){
             matchText += "<mark>"+wordsByPreceedingHit.slice(1).join("<mark>")
           }
 
-          var trailingWords = trailingText.split(" ")
-          var nTrailingWords = trailingWords.length
-          if (nTrailingWords < 2){
-            // give more context by adding more preceeding words if possible
-            if (nPreecdingWords > 5) {
-              matchText = [preceedingWords[nPreecdingWords-5],
-                           preceedingWords[nPreecdingWords-4],
-                           matchText].join(" ")
+          if (trailingText != null){
+            var trailingWords = trailingText.split(" ")
+            var nTrailingWords = trailingWords.length
+            if (nTrailingWords < 2){
+              // give more context by adding more preceeding words if possible
+              if (nPreecdingWords > 5) {
+                matchText = [preceedingWords[nPreecdingWords-5],
+                             preceedingWords[nPreecdingWords-4],
+                             matchText].join(" ")
+              }
             }
           }
 
@@ -54,7 +61,6 @@ queryRef.on("child_added", function(snapshot){
             matchText = "..."+matchText
           }
       
-          console.log(matchText)
           // replace highlights with fire text color
           matchText = matchText.replace(/<mark>/g, "<span style=\"color:#FC5830;\">")
                                 .replace(/<\/mark>/g, "</span>")

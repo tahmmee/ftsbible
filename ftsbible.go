@@ -91,8 +91,9 @@ func index() {
 
 func query(index bleve.Index, phrase string) []map[string]interface{} {
 	var results []map[string]interface{}
-	query := bleve.NewMatchQuery(phrase)
-	query.SetField("Text")
+	query := bleve.NewQueryStringQuery(phrase)
+	//query := bleve.NewMatchQuery(phrase)
+	//query.SetField("Text")
 
 	searchRequest := bleve.NewSearchRequest(query)
 	searchRequest.Highlight = bleve.NewHighlight()
@@ -120,7 +121,7 @@ func query(index bleve.Index, phrase string) []map[string]interface{} {
 }
 
 func main() {
-	index()
+	// index()
 
 	index, _ := bleve.Open("bibleidx_en_v2.bleve")
 	server, err := socketio.NewServer(nil)
