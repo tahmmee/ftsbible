@@ -51,7 +51,7 @@ func buildIndexMapping() (*mapping.IndexMappingImpl, error) {
 }
 func index() {
 
-	file, e := ioutil.ReadFile("./bible.json")
+	file, e := ioutil.ReadFile("./nlt.json")
 	if e != nil {
 		fmt.Printf("File error: %v\n", e)
 		os.Exit(1)
@@ -72,7 +72,7 @@ func index() {
 	indexMapping.AddDocumentMapping("verse", verseMapping)
 	indexMapping.DefaultType = "verse"
 
-	index, err := bleve.New("bibleidx_en_v2.bleve", indexMapping)
+	index, err := bleve.New("nlt_bible_idx.bleve", indexMapping)
 	defer index.Close()
 	if err != nil {
 		panic(err)
@@ -84,7 +84,7 @@ func index() {
 		index.Index(verse.Id, verse)
 		i -= 1
 		if i == 0 {
-			// break
+			//break
 		}
 	}
 
@@ -100,7 +100,7 @@ func query(index bleve.Index, phrase string) []map[string]interface{} {
 	searchRequest.Highlight = bleve.NewHighlight()
 	searchRequest.Size = 20
 	searchResult, _ := index.Search(searchRequest)
-	fmt.Println(searchResult)
+	// fmt.Println(searchResult)
 	if searchResult == nil {
 		return results
 	}
@@ -116,15 +116,22 @@ func query(index bleve.Index, phrase string) []map[string]interface{} {
 		result["text"] = fragmentText
 		result["score"] = match.Score
 		results = append(results, result)
-		fmt.Println(id, fragmentText)
+		// fmt.Println(id, fragmentText)
 	}
 	return results
 }
 
 func main() {
-	// index()
 
-	index, _ := bleve.Open("bibleidx_en_v2.bleve")
+	indexes := []bleve.Index{}
+	indexPaths := []string{"bibleidx_en_v2.bleve", "csb_bible_idx.bleve", "kjv_bible_idx.bleve", "nasb_bible_idx.bleve", "net_bible_idx.bleve", "niv_bible_idx.bleve", "nlt_bible_idx.bleve"}
+	for _, path := range indexPaths {
+		idx, err := bleve.Open(path)
+		if err != nil {
+			log.Fatal(err)
+		}
+		indexes = append(indexes, idx)
+	}
 	server, err := socketio.NewServer(nil)
 	if err != nil {
 		log.Fatal(err)
@@ -133,7 +140,26 @@ func main() {
 		log.Println("on connection")
 
 		so.On("query:event", func(msg string) []map[string]interface{} {
-			result := query(index, msg)
+			// only return highest scoring results
+			result := make([]map[string]interface{}, 0)
+			var maxScore float64 = 0.0
+			for i, idx := range indexes {
+				r := query(idx, msg)
+
+				if len(r) > 0 {
+					resultScore := r[0]["score"].(float64)
+					if indexPaths[i] == "net_bible_idx.bleve" {
+						// decrement .net
+						resultScore = resultScore - 0.1
+					}
+					if resultScore > maxScore {
+						fmt.Println(indexPaths[i], "--------> ", r[0])
+						result = r
+						maxScore = resultScore
+
+					}
+				}
+			}
 			return result
 		})
 
