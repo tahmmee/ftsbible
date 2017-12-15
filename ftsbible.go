@@ -9,6 +9,7 @@ import (
 	"github.com/blevesearch/bleve/analysis/tokenizer/whitespace"
 	"github.com/blevesearch/bleve/mapping"
 	"github.com/blevesearch/bleve/search"
+	enx "github.com/blevesearch/blevex/lang/en"
 	"github.com/googollee/go-socket.io"
 	"io/ioutil"
 	"log"
@@ -38,7 +39,7 @@ func buildIndexMapping() (*mapping.IndexMappingImpl, error) {
 			"char_filters": []interface{}{},
 			"tokenizer":    whitespace.Name,
 			"token_filters": []interface{}{
-				en.StemmerName,
+				enx.StemmerName,
 			},
 		})
 	if err != nil {
